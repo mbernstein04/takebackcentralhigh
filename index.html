@@ -1282,15 +1282,18 @@
 </footer>
 
 <script>
-  // Local-test fallback: if Netlify's handler isn't present (local preview),
-  // show the success state instead of navigating away.
-  // Also: swap success copy if the yard-sign checkbox was checked.
+  // Form submission: intercept the submit and POST to Netlify in the background,
+  // so the user stays on the page and sees the inline success state instead of
+  // being redirected to a generic Netlify thank-you page.
+  // Yard-sign checkbox state determines which success message displays.
   (function() {
     var form = document.getElementById('hero-signup-form');
     var success = document.getElementById('hero-signup-success');
     if (!form || !success) return;
+
     form.addEventListener('submit', function(e) {
-      // Swap success copy based on yard-sign checkbox (runs whether or not we're local).
+      e.preventDefault();
+
       var ys = document.getElementById('hs-yardsign-input');
       var defaultMsg = document.getElementById('hero-signup-default-msg');
       var yardsignMsg = document.getElementById('hero-signup-yardsign-msg');
@@ -1298,11 +1301,23 @@
         defaultMsg.style.display = 'none';
         yardsignMsg.style.display = 'inline';
       }
-      // Local-only: prevent submit and show success state inline.
-      if (window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-        e.preventDefault();
-        form.style.display = 'none';
-        success.classList.add('shown');
+
+      form.style.display = 'none';
+      success.classList.add('shown');
+      if (typeof success.scrollIntoView === 'function') {
+        success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      try {
+        var formData = new FormData(form);
+        var encoded = new URLSearchParams(formData).toString();
+        fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: encoded
+        }).catch(function() { /* swallow network errors silently */ });
+      } catch (err) {
+        form.submit();
       }
     });
   })();
