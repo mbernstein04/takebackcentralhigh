@@ -1307,9 +1307,21 @@
     });
   })();
 
-  // Signature tracker: count is set via data-count attribute on .tracker-num.
-  // Update that value as the campaign progresses.
-  // (Goal/progress bar intentionally removed — show progress, not gap to a number.)
+  // Signature tracker: fetch live count from Netlify Function on page load.
+  // Falls back to the displayed value (data-count) if the fetch fails — which
+  // happens on local preview (no Netlify backend) or if the function errors.
+  (function() {
+    var num = document.querySelector('.tracker-num');
+    if (!num) return;
+    fetch('/.netlify/functions/signature-count', { cache: 'no-cache' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (data && typeof data.count === 'number') {
+          num.textContent = data.count.toLocaleString('en-US');
+        }
+      })
+      .catch(function() { /* leave displayed value as-is */ });
+  })();
 </script>
 
 </body>
